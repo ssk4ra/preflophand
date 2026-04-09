@@ -1,0 +1,319 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  #app{
+    background:#0c1a0e;
+    min-height:100vh;
+    padding:20px 16px 40px;
+    max-width:480px;
+    margin:0 auto;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  .casino-header{
+    text-align:center;
+    margin-bottom:24px;
+    padding-bottom:16px;
+    border-bottom:1px solid #c9a84c40;
+  }
+  .casino-title{
+    font-family:'Playfair Display',serif;
+    font-size:22px;
+    font-weight:700;
+    color:#c9a84c;
+    letter-spacing:2px;
+  }
+  .casino-sub{
+    font-size:11px;
+    color:#4a7a4a;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    margin-top:4px;
+  }
+  .section-label{
+    font-size:10px;
+    color:#4a7a4a;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    margin-bottom:8px;
+    padding-left:2px;
+  }
+  .position-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+    margin-bottom:22px;
+  }
+  .pos-btn{
+    padding:11px 4px;
+    border-radius:6px;
+    border:1px solid #1e3a1e;
+    background:#0f2010;
+    color:#3d6b3d;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+    transition:all 0.14s;
+    letter-spacing:0.5px;
+    font-family:inherit;
+  }
+  .pos-btn:active{transform:scale(0.93)}
+  .pos-btn.selected{
+    border-color:#c9a84c;
+    background:#1a1500;
+    color:#c9a84c;
+  }
+  .card-grid{
+    display:grid;
+    grid-template-columns:repeat(13,1fr);
+    gap:3px;
+    margin-bottom:12px;
+  }
+  .card-btn{
+    aspect-ratio:3/4;
+    border-radius:4px;
+    border:1px solid #1e3a1e;
+    background:#0f2010;
+    color:#3d6b3d;
+    font-size:11px;
+    font-weight:800;
+    cursor:pointer;
+    transition:all 0.1s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:inherit;
+  }
+  .card-btn:active{transform:scale(0.88)}
+  .card-btn.sel1{border-color:#e8d5a3;background:#2a2000;color:#e8d5a3}
+  .card-btn.sel2{border-color:#e8d5a3;background:#1a1000;color:#c9a84c}
+  .suited-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:20px;
+    padding:10px 14px;
+    background:#0f2010;
+    border-radius:8px;
+    border:1px solid #1e3a1e;
+  }
+  .suited-label{font-size:12px;color:#4a7a4a;letter-spacing:1px}
+  .toggle-wrap{
+    display:flex;
+    background:#080f08;
+    border-radius:6px;
+    overflow:hidden;
+    border:1px solid #1e3a1e;
+  }
+  .tog{
+    padding:7px 16px;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+    border:none;
+    background:transparent;
+    color:#2d522d;
+    transition:all 0.14s;
+    font-family:inherit;
+    letter-spacing:0.5px;
+  }
+  .tog.on-s{background:#1a1500;color:#c9a84c}
+  .tog.on-o{background:#1a1500;color:#c9a84c}
+  .hand-wrap{
+    text-align:center;
+    margin-bottom:20px;
+    padding:14px;
+    background:#0f2010;
+    border-radius:8px;
+    border:1px solid #1e3a1e;
+  }
+  .hand-label{font-size:10px;color:#3d5a3d;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+  .hand-text{
+    font-family:'Playfair Display',serif;
+    font-size:38px;
+    font-weight:700;
+    color:#e8d5a3;
+    letter-spacing:4px;
+    min-height:48px;
+    line-height:1;
+  }
+  #result-area{
+    border-radius:10px;
+    padding:26px 20px;
+    text-align:center;
+    min-height:100px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #1e3a1e;
+    background:#0a150a;
+    transition:border-color 0.2s,background 0.2s;
+  }
+  #result-area.ok{background:#071a07;border-color:#c9a84c}
+  #result-area.ng{background:#1a0707;border-color:#7a2020}
+  #result-area.empty{border:1px dashed #1e3a1e;background:transparent}
+  #result-verdict{
+    font-family:'Playfair Display',serif;
+    font-size:46px;
+    font-weight:700;
+    letter-spacing:6px;
+    line-height:1;
+  }
+  .ok #result-verdict{color:#c9a84c}
+  .ng #result-verdict{color:#8b2020}
+  .empty #result-verdict{font-size:13px;color:#2a4a2a;letter-spacing:1px;font-family:inherit;font-weight:400}
+  #result-sub{
+    font-size:12px;
+    margin-top:10px;
+    letter-spacing:1px;
+  }
+  .ok #result-sub{color:#7a6020}
+  .ng #result-sub{color:#5a2020}
+  .divider{
+    height:1px;
+    background:#c9a84c20;
+    margin:16px 0;
+  }
+</style>
+
+<div id="app">
+  <div class="casino-header">
+    <div class="casino-title">PREFLOP JUDGE</div>
+    <div class="casino-sub">9-max · 100bb · Cash Game</div>
+  </div>
+
+  <div class="section-label">Position</div>
+  <div class="position-grid" id="pos-grid">
+    <button class="pos-btn" data-pos="UTG">UTG</button>
+    <button class="pos-btn" data-pos="UTG+1">UTG+1</button>
+    <button class="pos-btn" data-pos="UTG+2">UTG+2</button>
+    <button class="pos-btn" data-pos="MP">MP</button>
+    <button class="pos-btn" data-pos="HJ">HJ</button>
+    <button class="pos-btn" data-pos="CO">CO</button>
+    <button class="pos-btn" data-pos="BTN">BTN</button>
+    <button class="pos-btn" data-pos="SB">SB</button>
+    <button class="pos-btn" data-pos="BB">BB</button>
+  </div>
+
+  <div class="section-label">Hand</div>
+  <div class="card-grid" id="card-grid"></div>
+
+  <div class="suited-row">
+    <span class="suited-label">Suit</span>
+    <div class="toggle-wrap">
+      <button class="tog on-s" id="btn-s" onclick="setSuited(true)">Suited (s)</button>
+      <button class="tog" id="btn-o" onclick="setSuited(false)">Offsuit (o)</button>
+    </div>
+  </div>
+
+  <div class="hand-wrap">
+    <div class="hand-label">Selected hand</div>
+    <div class="hand-text" id="hand-text">— ?</div>
+  </div>
+
+  <div id="result-area" class="empty">
+    <div id="result-verdict">Select position &amp; cards</div>
+    <div id="result-sub"></div>
+  </div>
+</div>
+
+<script>
+const RANKS=['A','K','Q','J','T','9','8','7','6','5','4','3','2']
+const base=["AA","KK","QQ","JJ","TT","99","AKs","AQs","AJs","ATs","KQs","AKo","AQo"]
+const u1=["KJs","AJo","KQo","QJs"]
+const u2=["88","77","JTs"]
+const mp=["A9s","ATo","KJo","A8s","QTs","KTs"]
+const hj=["55","66","A7s","A6s","A5s","A4s","A3s","A2s","K9s","T9s"]
+const co=["44","33","22","Q9s","J9s","98s","T8s","A9o","KTo","QJo","JTo"]
+const btn=["K8s","K7s","K6s","K5s","K4s","K3s","K2s","Q8s","Q7s","Q6s","J8s","J7s","97s","87s","76s","65s","K9o","QTo","Q9o","J9o","T9o","A8o","A7o"]
+const sb=["A6o","98o","T7s","J6s","Q5s","Q4s","Q3s","Q2s","96s","86s","75s","64s","54s"]
+const mg=(...a)=>[...new Set(a.flat())]
+const OR={
+  UTG:new Set(base),
+  'UTG+1':new Set(mg(base,u1)),
+  'UTG+2':new Set(mg(base,u1,u2)),
+  MP:new Set(mg(base,u1,u2,mp)),
+  HJ:new Set(mg(base,u1,u2,mp,hj)),
+  CO:new Set(mg(base,u1,u2,mp,hj,co)),
+  BTN:new Set(mg(base,u1,u2,mp,hj,co,btn)),
+  SB:new Set(mg(base,u1,u2,mp,hj,co,btn)),
+  BB:new Set(mg(base,u1,u2,mp,hj,co,btn,sb))
+}
+let pos=null,cards=[],suited=true
+const cg=document.getElementById('card-grid')
+RANKS.forEach(r=>{
+  const b=document.createElement('button')
+  b.className='card-btn';b.textContent=r;b.dataset.rank=r
+  b.onclick=()=>pickCard(r);cg.appendChild(b)
+})
+document.getElementById('pos-grid').addEventListener('click',e=>{
+  const b=e.target.closest('.pos-btn');if(!b)return
+  if(b.classList.contains('selected')){b.classList.remove('selected');pos=null}
+  else{document.querySelectorAll('.pos-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');pos=b.dataset.pos}
+  upd()
+})
+function pickCard(r){
+  if(cards.length===1){
+    if(cards[0]===r){cards=[];suited=true;updSuit();upd();return}
+    cards.push(r)
+    if(cards[0]===cards[1]){suited=false;updSuit()}
+    upd();return
+  }
+  if(cards.length===2){
+    if(r===cards[0]){cards=[cards[1]];suited=true;updSuit()}
+    else if(r===cards[1]){cards=[cards[0]];suited=true;updSuit()}
+    else{cards=[r];suited=true;updSuit()}
+    upd();return
+  }
+  cards=[r];upd()
+}
+function setSuited(v){
+  if(cards.length===2&&cards[0]===cards[1])return
+  suited=v;updSuit();upd()
+}
+function updSuit(){
+  document.getElementById('btn-s').className='tog'+(suited?' on-s':'')
+  document.getElementById('btn-o').className='tog'+(!suited?' on-o':'')
+}
+function toHand(r1,r2,s){
+  const i1=RANKS.indexOf(r1),i2=RANKS.indexOf(r2)
+  const hi=i1<=i2?r1:r2,lo=i1<=i2?r2:r1
+  if(hi===lo)return hi+lo
+  return hi+lo+(s?'s':'o')
+}
+function updCards(){
+  document.querySelectorAll('.card-btn').forEach(b=>b.classList.remove('sel1','sel2'))
+  if(cards.length>=1){let f=false;document.querySelectorAll('.card-btn').forEach(b=>{if(!f&&b.dataset.rank===cards[0]){b.classList.add('sel1');f=true}})}
+  if(cards.length===2){
+    const pair=cards[0]===cards[1];let c=0
+    document.querySelectorAll('.card-btn').forEach(b=>{
+      if(b.dataset.rank===cards[1]){c++;if(!pair&&c===1)b.classList.add('sel2');if(pair&&c===2)b.classList.add('sel2')}
+    })
+  }
+}
+function updHand(){
+  const el=document.getElementById('hand-text')
+  if(cards.length===0){el.textContent='— ?';return}
+  if(cards.length===1){el.textContent=cards[0]+' ?';return}
+  el.textContent=toHand(cards[0],cards[1],suited)
+}
+function updResult(){
+  const area=document.getElementById('result-area')
+  const verd=document.getElementById('result-verdict')
+  const sub=document.getElementById('result-sub')
+  if(!pos||cards.length!==2){
+    area.className='empty'
+    verd.textContent=!pos&&cards.length<2?'Select position & cards':!pos?'Select a position':'Select 2nd card'
+    sub.textContent='';return
+  }
+  const hand=toHand(cards[0],cards[1],suited)
+  const ok=OR[pos]?.has(hand)??false
+  area.className=ok?'ok':'ng'
+  verd.textContent=ok?'OPEN':'FOLD'
+  sub.textContent=pos+' · '+hand+' · '+(ok?'Raise first in':'Muck it')
+}
+function upd(){updCards();updHand();updResult()}
+upd()
+</script>
