@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preflop Judge</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ========== ベース ========== */
+body{
+  background:#0c1a0e;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  color:#c8d8c8;
+  min-height:100dvh;
+}
+#app{
+  max-width:480px;
+  margin:0 auto;
+  padding:16px 14px 48px;
+  min-height:100dvh;
+}
+
+/* ========== ヘッダー ========== */
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:20px;
+  padding-bottom:14px;
+  border-bottom:1px solid #c9a84c30;
+}
+.header-center{text-align:center;flex:1}
+.casino-title{
+  font-family:'Playfair Display',serif;
+  font-size:20px;
+  font-weight:700;
+  color:#c9a84c;
+  letter-spacing:2px;
+}
+.casino-sub{font-size:10px;color:#4a7a4a;letter-spacing:3px;text-transform:uppercase;margin-top:3px}
+.header-btn{
+  background:none;border:1px solid #2a4a2a;border-radius:6px;
+  color:#4a7a4a;font-size:11px;font-weight:700;padding:7px 10px;
+  cursor:pointer;letter-spacing:0.5px;font-family:inherit;
+  transition:all 0.14s;white-space:nowrap;
+}
+.header-btn:active{transform:scale(0.93)}
+.header-btn.gold{border-color:#c9a84c60;color:#c9a84c}
+
+/* ========== セクションラベル ========== */
+.lbl{
+  font-size:10px;color:#4a7a4a;letter-spacing:3px;
+  text-transform:uppercase;margin-bottom:7px;padding-left:1px;
+}
+
+/* ========== ポジショングリッド ========== */
+.pos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:20px}
+.pos-btn{
+  padding:10px 2px;border-radius:6px;border:1px solid #1e3a1e;
+  background:#0f2010;color:#3d6b3d;font-size:12px;font-weight:700;
+  cursor:pointer;transition:all 0.13s;font-family:inherit;letter-spacing:0.5px;
+}
+.pos-btn:active{transform:scale(0.93)}
+.pos-btn.sel{border-color:#c9a84c;background:#1a1500;color:#c9a84c}
+.pos-btn.multi-sel{border-color:#6aaa6a;background:#0a200a;color:#6aaa6a}
+
+/* ========== カードグリッド ========== */
+.card-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-bottom:10px}
+.card-btn{
+  aspect-ratio:3/4;border-radius:4px;border:1px solid #1e3a1e;
+  background:#0f2010;color:#3d6b3d;font-size:11px;font-weight:800;
+  cursor:pointer;transition:all 0.1s;display:flex;align-items:center;
+  justify-content:center;font-family:inherit;
+}
+.card-btn:active{transform:scale(0.88)}
+.card-btn.sel1{border-color:#e8d5a3;background:#2a2000;color:#e8d5a3}
+.card-btn.sel2{border-color:#c9a84c;background:#1a1000;color:#c9a84c}
+.card-btn.board-sel{border-color:#6aaa6a;background:#0a200a;color:#6aaa6a}
+.card-btn.used{opacity:0.25;pointer-events:none}
+
+/* ========== スーテッドトグル ========== */
+.suited-row{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  margin-bottom:16px;padding:9px 12px;background:#0f2010;
+  border-radius:8px;border:1px solid #1e3a1e;
+}
+.suited-lbl{font-size:12px;color:#4a7a4a}
+.tog-wrap{display:flex;background:#080f08;border-radius:6px;overflow:hidden;border:1px solid #1e3a1e}
+.tog{
+  padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;
+  border:none;background:transparent;color:#2d522d;transition:all 0.13s;
+  font-family:inherit;
+}
+.tog.on{background:#1a1500;color:#c9a84c}
+
+/* ========== ハンド表示 ========== */
+.hand-wrap{
+  text-align:center;margin-bottom:16px;padding:12px;
+  background:#0f2010;border-radius:8px;border:1px solid #1e3a1e;
+}
+.hand-lbl{font-size:10px;color:#3d5a3d;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.hand-text{
+  font-family:'Playfair Display',serif;font-size:34px;font-weight:700;
+  color:#e8d5a3;letter-spacing:4px;min-height:42px;line-height:1;
+}
+
+/* ========== 判定結果 ========== */
+.result-area{
+  border-radius:10px;padding:22px 16px;text-align:center;min-height:88px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:1px solid #1e3a1e;background:#0a150a;transition:border-color 0.2s,background 0.2s;
+  margin-bottom:14px;
+}
+.result-area.ok{background:#071a07;border-color:#c9a84c}
+.result-area.ng{background:#1a0707;border-color:#7a2020}
+.result-area.empty{border:1px dashed #1e3a1e;background:transparent}
+.verdict{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;letter-spacing:6px;line-height:1}
+.ok .verdict{color:#c9a84c}
+.ng .verdict{color:#8b2020}
+.empty .verdict{font-size:13px;color:#2a4a2a;letter-spacing:1px;font-family:inherit;font-weight:400}
+.verdict-sub{font-size:11px;margin-top:8px;letter-spacing:1px}
+.ok .verdict-sub{color:#7a6020}
+.ng .verdict-sub{color:#5a2020}
+
+/* ========== アクションボタン群 ========== */
+.action-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.act-btn{
+  flex:1;min-width:60px;padding:10px 4px;border-radius:6px;
+  border:1px solid #1e3a1e;background:#0f2010;color:#3d6b3d;
+  font-size:12px;font-weight:700;cursor:pointer;transition:all 0.13s;
+  font-family:inherit;letter-spacing:0.3px;
+}
+.act-btn:active{transform:scale(0.93)}
+.act-btn.sel{border-color:#c9a84c;background:#1a1500;color:#c9a84c}
+.act-btn.sel-red{border-color:#8b2020;background:#1a0707;color:#c05050}
+
+/* ========== ベット額入力 ========== */
+.bet-row{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:14px;padding:10px 12px;
+  background:#0f2010;border-radius:8px;border:1px solid #1e3a1e;
+}
+.bet-lbl{font-size:11px;color:#4a7a4a;letter-spacing:1px;white-space:nowrap}
+.bet-input{
+  flex:1;background:#080f08;border:1px solid #2a4a2a;border-radius:5px;
+  color:#e8d5a3;font-size:16px;font-weight:700;padding:7px 10px;
+  font-family:'Playfair Display',serif;text-align:right;
+  -webkit-appearance:none;appearance:none;
+}
+.bet-input:focus{outline:none;border-color:#c9a84c60}
+.bet-unit{font-size:11px;color:#4a7a4a}
+
+/* ========== スートピッカー ========== */
+.suit-row{display:flex;gap:6px;margin-bottom:10px}
+.suit-btn{
+  flex:1;padding:10px 4px;border-radius:6px;border:1px solid #1e3a1e;
+  background:#0f2010;font-size:18px;cursor:pointer;transition:all 0.13s;
+  text-align:center;
+}
+.suit-btn:active{transform:scale(0.9)}
+.suit-btn.sel-suit{background:#1a2a1a;border-color:#6aaa6a}
+
+/* ========== ボードカード表示 ========== */
+.board-display{
+  display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;
+}
+.board-card{
+  padding:8px 12px;border-radius:6px;border:1px solid #2a4a2a;
+  background:#0a1a0a;font-size:15px;font-weight:800;
+  font-family:'Playfair Display',serif;letter-spacing:1px;min-width:48px;text-align:center;
+}
+.board-card.spade,.board-card.club{color:#a0c0a0}
+.board-card.heart,.board-card.diamond{color:#c05050}
+.board-card.empty-slot{color:#2a4a2a;border-style:dashed}
+
+/* ========== 区切り ========== */
+.divider{height:1px;background:#c9a84c18;margin:14px 0}
+.street-title{
+  font-family:'Playfair Display',serif;font-size:15px;font-weight:700;
+  color:#c9a84c;letter-spacing:2px;margin-bottom:12px;
+}
+
+/* ========== ナビボタン ========== */
+.nav-row{display:flex;gap:8px;margin-top:16px}
+.nav-btn{
+  flex:1;padding:13px;border-radius:8px;border:1px solid #2a4a2a;
+  background:#0f2010;color:#4a7a4a;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all 0.13s;font-family:inherit;letter-spacing:0.5px;
+}
+.nav-btn:active{transform:scale(0.96)}
+.nav-btn.primary{border-color:#c9a84c;background:#1a1500;color:#c9a84c}
+.nav-btn.danger{border-color:#5a2020;background:#1a0707;color:#8b3030}
+
+/* ========== 結果ボタン ========== */
+.result-btns{display:flex;gap:6px;margin-bottom:14px}
+.res-btn{
+  flex:1;padding:16px 4px;border-radius:8px;border:1px solid #1e3a1e;
+  background:#0f2010;font-size:13px;font-weight:700;cursor:pointer;
+  transition:all 0.13s;font-family:inherit;color:#3d6b3d;
+}
+.res-btn:active{transform:scale(0.93)}
+.res-btn.win{border-color:#c9a84c;background:#1a1500;color:#c9a84c}
+.res-btn.lose{border-color:#8b2020;background:#1a0707;color:#c05050}
+.res-btn.chop{border-color:#4a6a8a;background:#0a1520;color:#6a9aba}
+
+/* ========== メモ入力 ========== */
+.memo-input{
+  width:100%;background:#080f08;border:1px solid #2a4a2a;border-radius:8px;
+  color:#c8d8c8;font-size:14px;padding:12px;font-family:inherit;
+  resize:none;height:72px;margin-bottom:14px;
+}
+.memo-input:focus{outline:none;border-color:#c9a84c60}
+.memo-input::placeholder{color:#2a4a2a}
+
+/* ========== 履歴一覧 ========== */
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-item{
+  padding:12px 14px;border-radius:8px;border:1px solid #1e3a1e;
+  background:#0f2010;cursor:pointer;transition:all 0.13s;
+}
+.history-item:active{transform:scale(0.98)}
+.history-item.win-item{border-left:3px solid #c9a84c}
+.history-item.lose-item{border-left:3px solid #7a2020}
+.history-item.chop-item{border-left:3px solid #4a6a8a}
+.hi-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hi-hand{font-family:'Playfair Display',serif;font-size:18px;color:#e8d5a3;font-weight:700}
+.hi-result{font-size:12px;font-weight:700;letter-spacing:1px}
+.win-item .hi-result{color:#c9a84c}
+.lose-item .hi-result{color:#c05050}
+.chop-item .hi-result{color:#6a9aba}
+.hi-meta{font-size:11px;color:#3d6b3d;letter-spacing:0.5px}
+.empty-history{text-align:center;padding:40px 20px;color:#2a4a2a;font-size:13px;letter-spacing:1px}
+
+/* ========== 詳細モーダル ========== */
+.detail-overlay{
+  position:fixed;inset:0;background:#00000090;z-index:100;
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.detail-sheet{
+  background:#0c1a0e;border-radius:16px 16px 0 0;border-top:1px solid #c9a84c30;
+  width:100%;max-width:480px;max-height:85dvh;overflow-y:auto;padding:20px 16px 40px;
+}
+.detail-handle{width:36px;height:3px;background:#2a4a2a;border-radius:2px;margin:0 auto 16px}
+.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a2a1a;font-size:13px}
+.detail-key{color:#4a7a4a;letter-spacing:0.5px}
+.detail-val{color:#c8d8c8;font-weight:700;text-align:right;max-width:60%}
+.detail-street{margin-top:12px;margin-bottom:4px;font-size:10px;color:#4a7a4a;letter-spacing:3px;text-transform:uppercase}
+
+/* ========== 画面切り替え ========== */
+.screen{display:none}
+.screen.active{display:block}
+
+/* ========== スマホ対応 ========== */
+@media(max-width:480px){
+  #app{padding:8px 10px 48px}
+  .card-btn{aspect-ratio:1/1;font-size:clamp(10px,3.5vw,14px)}
+  .pos-btn{padding:8px 2px;font-size:11px}
+  .hand-text{font-size:28px}
+  .verdict{font-size:32px}
+}
+</style>
+
+<div id="app">
+
+  <!-- ========== 画面①: JUDGE ========== -->
+  <div class="screen active" id="screen-judge">
+    <div class="header">
+      <div style="width:60px"></div>
+      <div class="header-center">
+        <div class="casino-title">PREFLOP JUDGE</div>
+        <div class="casino-sub">9-max · 100bb · Cash Game</div>
+      </div>
+      <button class="header-btn gold" onclick="showScreen('screen-history')">HISTORY</button>
+    </div>
+
+    <div class="lbl">Position</div>
+    <div class="pos-grid" id="pos-grid">
+      <button class="pos-btn" data-pos="UTG">UTG</button>
+      <button class="pos-btn" data-pos="UTG+1">UTG+1</button>
+      <button class="pos-btn" data-pos="UTG+2">UTG+2</button>
+      <button class="pos-btn" data-pos="MP">MP</button>
+      <button class="pos-btn" data-pos="HJ">HJ</button>
+      <button class="pos-btn" data-pos="CO">CO</button>
+      <button class="pos-btn" data-pos="BTN">BTN</button>
+      <button class="pos-btn" data-pos="SB">SB</button>
+      <button class="pos-btn" data-pos="BB">BB</button>
+    </div>
+
+    <div class="lbl">Hand</div>
+    <div class="card-grid" id="card-grid"></div>
+
+    <div class="suited-row">
+      <span class="suited-lbl">Suit</span>
+      <div class="tog-wrap">
+        <button class="tog on" id="btn-s" onclick="setSuited(true)">Suited (s)</button>
+        <button class="tog" id="btn-o" onclick="setSuited(false)">Offsuit (o)</button>
+      </div>
+    </div>
+
+    <div class="hand-wrap">
+      <div class="hand-lbl">Selected hand</div>
+      <div class="hand-text" id="hand-text">— ?</div>
+    </div>
+
+    <div class="result-area empty" id="result-area">
+      <div class="verdict" id="verdict">Select position &amp; cards</div>
+      <div class="verdict-sub" id="verdict-sub"></div>
+    </div>
+
+    <button class="nav-btn primary" id="record-btn" style="width:100%;margin-top:0" onclick="startRecord()" disabled>
+      + Record This Hand
+    </button>
+  </div>
+
+  <!-- ========== 画面②: PREFLOP RECORD ========== -->
+  <div class="screen" id="screen-preflop">
+    <div class="header">
+      <button class="header-btn" onclick="showScreen('screen-judge')">← Back</button>
+      <div class="header-center">
+        <div class="casino-title" style="font-size:16px">RECORD</div>
+        <div class="casino-sub">Preflop</div>
+      </div>
+      <div style="width:60px"></div>
+    </div>
+
+    <div class="lbl">Villain Positions (複数可)</div>
+    <div class="pos-grid" id="villain-pos-grid">
+      <button class="pos-btn" data-pos="UTG">UTG</button>
+      <button class="pos-btn" data-pos="UTG+1">UTG+1</button>
+      <button class="pos-btn" data-pos="UTG+2">UTG+2</button>
+      <button class="pos-btn" data-pos="MP">MP</button>
+      <button class="pos-btn" data-pos="HJ">HJ</button>
+      <button class="pos-btn" data-pos="CO">CO</button>
+      <button class="pos-btn" data-pos="BTN">BTN</button>
+      <button class="pos-btn" data-pos="SB">SB</button>
+      <button class="pos-btn" data-pos="BB">BB</button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="street-title">Villain Action</div>
+    <div class="action-row" id="vill-pf-actions">
+      <button class="act-btn" data-act="LIMP">LIMP</button>
+      <button class="act-btn" data-act="RAISE">RAISE</button>
+      <button class="act-btn" data-act="3BET">3BET</button>
+      <button class="act-btn" data-act="FOLD">FOLD</button>
+    </div>
+    <div class="bet-row">
+      <span class="bet-lbl">Villain Bet</span>
+      <input class="bet-input" type="number" id="vill-pf-bet" placeholder="0" min="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="street-title">Hero Action</div>
+    <div class="action-row" id="hero-pf-actions">
+      <button class="act-btn" data-act="FOLD">FOLD</button>
+      <button class="act-btn" data-act="CALL">CALL</button>
+      <button class="act-btn" data-act="RAISE">RAISE</button>
+      <button class="act-btn" data-act="3BET">3BET</button>
+    </div>
+    <div class="bet-row">
+      <span class="bet-lbl">Hero Bet</span>
+      <input class="bet-input" type="number" id="hero-pf-bet" placeholder="0" min="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="nav-row">
+      <button class="nav-btn danger" onclick="showScreen('screen-judge')">Cancel</button>
+      <button class="nav-btn primary" onclick="goToFlop()">Flop →</button>
+    </div>
+  </div>
+
+  <!-- ========== 画面③: FLOP ========== -->
+  <div class="screen" id="screen-flop">
+    <div class="header">
+      <button class="header-btn" onclick="showScreen('screen-preflop')">← Back</button>
+      <div class="header-center">
+        <div class="casino-title" style="font-size:16px">RECORD</div>
+        <div class="casino-sub">Flop</div>
+      </div>
+      <div style="width:60px"></div>
+    </div>
+
+    <div class="lbl">Board Cards（3枚）</div>
+    <div class="board-display" id="flop-display"></div>
+    <div id="flop-card-picker"></div>
+
+    <div class="divider"></div>
+    <div class="street-title">Villain Action</div>
+    <div class="action-row" id="vill-flop-actions">
+      <button class="act-btn" data-act="CHECK">CHECK</button>
+      <button class="act-btn" data-act="BET">BET</button>
+      <button class="act-btn" data-act="RAISE">RAISE</button>
+      <button class="act-btn" data-act="FOLD">FOLD</button>
+    </div>
+    <div class="bet-row">
+      <span class="bet-lbl">Villain Bet</span>
+      <input class="bet-input" type="number" id="vill-flop-bet" placeholder="0" min="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="street-title">Hero Action</div>
+    <div class="action-row" id="hero-flop-actions">
+      <button class="act-btn" data-act="CHECK">CHECK</button>
+      <button class="act-btn" data-act="CALL">CALL</button>
+      <button class="act-btn" data-act="BET">BET</button>
+      <button class="act-btn" data-act="RAISE">RAISE</button>
+      <button class="act-btn" data-act="FOLD">FOLD</button>
+    </div>
+    <div class="bet-row">
+      <span class="bet-lbl">Hero Bet</span>
+      <input class="bet-input" type="number" id="hero-flop-bet" placeholder="0" min="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="nav-row">
+      <button class="nav-btn" onclick="skipToResult('flop')">Skip to Result</button>
+      <button class="nav-btn primary" onclick="goToTurn()">Turn →</button>
+    </div>
+  </div>
+
+  <!-- ========== 画面④: TURN ========== -->
+  <div class="screen" id="screen-turn">
+    <div class="header">
+      <button class="header-btn" onclick="showScreen('screen-flop')">← Back</button>
+      <div class="header-center">
+        <div class="casino-title" style="font-size:16px">RECORD</div>
+        <div class="casino-sub">Turn</div>
+      </div>
+      <div style="width:60px"></div>
+    </div>
+
+    <div class="lbl">Board（フロップ + ターン）</div>
+    <div class="board-display" id="turn-board-display"></div>
+    <div class="lbl" style="margin-top:10px">Turn Card</div>
+    <div id="turn-card-picker"></div>
+
+    <div class="divider"></div>
+    <div class="street-title">Villain Action</div>
+    <div class="action-row" id="vill-turn-actions">
+      <button class="act-btn" data-act="CHECK">CHECK</button>
+      <button class="act-btn" data-act="BET">BET</button>
+      <button class="act-btn" data-act="RAISE">RAISE</button>
+      <button class="act-btn" data-act="FOLD">FOLD</button>
+    </div>
+    <div class="bet-row">
+      <span class="bet-lbl">Villain Bet</span>
+      <input class="bet-input" type="number" id="vill-turn-bet" placeholder="0" min="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="street-title">Hero Action</div>
+    <div class="action-row" id="hero-turn-actions">
+      <button class="act-btn" data-act="CHECK">CHECK</button>
+      <button class="act-btn" data-act="CALL">CALL</button>
+      <button class="act-btn" data-act="BET">BET</button>
+      <button class="act-btn" data-act="RAISE">RAISE</button>
+      <button class="act-btn" data-act="FOLD">FOLD</button>
+    </div>
+    <div class="bet-row">
+      <span class="bet-lbl">Hero Bet</span>
+      <input class="bet-input" type="number" id="hero-turn-bet" placeholder="0" min="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="nav-row">
+      <button class="nav-btn" onclick="skipToResult('turn')">Skip to Result</button>
+      <button class="nav-btn primary" onclick="goToRiver()">River →</button>
+    </div>
+  </div>
+
+  <!-- ========== 画面⑤: RIVER ========== -->
+  <div class="screen" id="screen-river">
+    <div class="header">
+      <button class="header-btn" onclick="showScreen('screen-turn')">← Back</button>
+      <div class="header-center">
+        <div class="casino-title" style="font-size:16px">RECORD</div>
+        <div class="casino-sub">River</div>
+      </div>
+      <div style="width:60px"></div>
+    </div>
+
+    <div class="lbl">Board（フロップ + ターン + リバー）</div>
+    <div class="board-display" id="river-board-display"></div>
+    <div class="lbl" style="margin-top:10px">River Card</div>
+    <div id="river-card-picker"></div>
+
+    <div class="divider"></div>
+    <div class="street-title">Villain Action</div>
+    <div class="action-row" id="vill-river-actions">
+      <button class="act-btn" data-act="CHECK">CHECK</button>
+      <button class="act-btn" data-act="BET">BET</button>
+      <button class="act-btn" data-act="RAISE">RAISE</button>
+      <button class="act-btn" data-act="FOLD">FOLD</button>
+    </div>
+    <div class="bet-row">
+      <span class="bet-lbl">Villain Bet</span>
+      <input class="bet-input" type="number" id="vill-river-bet" placeholder="0" min="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="street-title">Hero Action</div>
+    <div class="action-row" id="hero-river-actions">
+      <button class="act-btn" data-act="CHECK">CHECK</button>
+      <button class="act-btn" data-act="CALL">CALL</button>
+      <button class="act-btn" data-act="BET">BET</button>
+      <button class="act-btn" data-act="RAISE">RAISE</button>
+      <button class="act-btn" data-act="FOLD">FOLD</button>
+    </div>
+    <div class="bet-row">
+      <span class="bet-lbl">Hero Bet</span>
+      <input class="bet-input" type="number" id="hero-river-bet" placeholder="0" min="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="nav-row">
+      <button class="nav-btn" onclick="skipToResult('river')">Skip to Result</button>
+      <button class="nav-btn primary" onclick="showScreen('screen-result')">Result →</button>
+    </div>
+  </div>
+
+  <!-- ========== 画面⑥: RESULT ========== -->
+  <div class="screen" id="screen-result">
+    <div class="header">
+      <button class="header-btn" onclick="showScreen('screen-river')">← Back</button>
+      <div class="header-center">
+        <div class="casino-title" style="font-size:16px">RESULT</div>
+        <div class="casino-sub">Final</div>
+      </div>
+      <div style="width:60px"></div>
+    </div>
+
+    <div class="lbl">Result</div>
+    <div class="result-btns">
+      <button class="res-btn" id="res-win" onclick="setResult('WIN')">WIN</button>
+      <button class="res-btn" id="res-lose" onclick="setResult('LOSE')">LOSE</button>
+      <button class="res-btn" id="res-chop" onclick="setResult('CHOP')">CHOP</button>
+    </div>
+
+    <div class="bet-row">
+      <span class="bet-lbl">Profit / Loss</span>
+      <input class="bet-input" type="number" id="profit-input" placeholder="0">
+      <span class="bet-unit">bb</span>
+    </div>
+
+    <div class="lbl">Memo（任意）</div>
+    <textarea class="memo-input" id="memo-input" placeholder="フロップでバリューベット…"></textarea>
+
+    <button class="nav-btn primary" style="width:100%" onclick="saveHand()">Save Hand ✓</button>
+  </div>
+
+  <!-- ========== 画面⑦: HISTORY ========== -->
+  <div class="screen" id="screen-history">
+    <div class="header">
+      <button class="header-btn" onclick="showScreen('screen-judge')">← Judge</button>
+      <div class="header-center">
+        <div class="casino-title" style="font-size:16px">HISTORY</div>
+        <div class="casino-sub" id="history-count">0 hands</div>
+      </div>
+      <button class="header-btn" style="color:#7a2020;border-color:#3a1010" onclick="clearHistory()">Clear</button>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+</div>
+
+<!-- 詳細モーダル -->
+<div class="detail-overlay" id="detail-overlay" style="display:none" onclick="closeDetail(event)">
+  <div class="detail-sheet" id="detail-sheet">
+    <div class="detail-handle"></div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// レンジデータ
+const RANKS=['A','K','Q','J','T','9','8','7','6','5','4','3','2']
+const SUITS=[{s:'s',e:'♠'},{s:'h',e:'♥'},{s:'d',e:'♦'},{s:'c',e:'♣'}]
+const base=["AA","KK","QQ","JJ","TT","99","AKs","AQs","AJs","ATs","KQs","AKo","AQo"]
+const u1=["KJs","AJo","KQo","QJs"],u2=["88","77","JTs"]
+const mp=["A9s","ATo","KJo","A8s","QTs","KTs"]
+const hj=["55","66","A7s","A6s","A5s","A4s","A3s","A2s","K9s","T9s"]
+const co=["44","33","22","Q9s","J9s","98s","T8s","A9o","KTo","QJo","JTo"]
+const btn=["K8s","K7s","K6s","K5s","K4s","K3s","K2s","Q8s","Q7s","Q6s","J8s","J7s","97s","87s","76s","65s","K9o","QTo","Q9o","J9o","T9o","A8o","A7o"]
+const sb=["A6o","98o","T7s","J6s","Q5s","Q4s","Q3s","Q2s","96s","86s","75s","64s","54s"]
+const mg=(...a)=>[...new Set(a.flat())]
+const OR={UTG:new Set(base),'UTG+1':new Set(mg(base,u1)),'UTG+2':new Set(mg(base,u1,u2)),MP:new Set(mg(base,u1,u2,mp)),HJ:new Set(mg(base,u1,u2,mp,hj)),CO:new Set(mg(base,u1,u2,mp,hj,co)),BTN:new Set(mg(base,u1,u2,mp,hj,co,btn)),SB:new Set(mg(base,u1,u2,mp,hj,co,btn)),BB:new Set(mg(base,u1,u2,mp,hj,co,btn,sb))}
+
+// ============================================================
+// 画面①: Judge 状態
+let pos=null,cards=[],suited=true
+
+// カードグリッド生成
+const cg=document.getElementById('card-grid')
+RANKS.forEach(r=>{
+  const b=document.createElement('button')
+  b.className='card-btn';b.textContent=r;b.dataset.rank=r
+  b.onclick=()=>pickCard(r);cg.appendChild(b)
+})
+
+document.getElementById('pos-grid').addEventListener('click',e=>{
+  const b=e.target.closest('.pos-btn');if(!b)return
+  if(b.classList.contains('sel')){b.classList.remove('sel');pos=null}
+  else{document.querySelectorAll('#pos-grid .pos-btn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');pos=b.dataset.pos}
+  upd()
+})
+
+function pickCard(r){
+  if(cards.length===1){
+    if(cards[0]===r){cards=[];suited=true;updSuit();upd();return}
+    cards.push(r)
+    if(cards[0]===cards[1]){suited=false;updSuit()}
+    upd();return
+  }
+  if(cards.length===2){
+    if(r===cards[0]){cards=[cards[1]];suited=true;updSuit()}
+    else if(r===cards[1]){cards=[cards[0]];suited=true;updSuit()}
+    else{cards=[r];suited=true;updSuit()}
+    upd();return
+  }
+  cards=[r];upd()
+}
+function setSuited(v){
+  if(cards.length===2&&cards[0]===cards[1])return
+  suited=v;updSuit();upd()
+}
+function updSuit(){
+  document.getElementById('btn-s').className='tog'+(suited?' on':'')
+  document.getElementById('btn-o').className='tog'+(!suited?' on':'')
+}
+function toHand(r1,r2,s){
+  const i1=RANKS.indexOf(r1),i2=RANKS.indexOf(r2)
+  const hi=i1<=i2?r1:r2,lo=i1<=i2?r2:r1
+  if(hi===lo)return hi+lo
+  return hi+lo+(s?'s':'o')
+}
+function updCards(){
+  document.querySelectorAll('.card-btn').forEach(b=>b.classList.remove('sel1','sel2'))
+  if(cards.length>=1){let f=false;document.querySelectorAll('.card-btn').forEach(b=>{if(!f&&b.dataset.rank===cards[0]){b.classList.add('sel1');f=true}})}
+  if(cards.length===2){
+    const pair=cards[0]===cards[1];let c=0
+    document.querySelectorAll('.card-btn').forEach(b=>{
+      if(b.dataset.rank===cards[1]){c++;if(!pair&&c===1)b.classList.add('sel2');if(pair&&c===2)b.classList.add('sel2')}
+    })
+  }
+}
+function updHand(){
+  const el=document.getElementById('hand-text')
+  if(cards.length===0){el.textContent='— ?';return}
+  if(cards.length===1){el.textContent=cards[0]+' ?';return}
+  el.textContent=toHand(cards[0],cards[1],suited)
+}
+function updResult(){
+  const area=document.getElementById('result-area')
+  const verd=document.getElementById('verdict')
+  const sub=document.getElementById('verdict-sub')
+  const recBtn=document.getElementById('record-btn')
+  if(!pos||cards.length!==2){
+    area.className='result-area empty'
+    verd.textContent=!pos&&cards.length<2?'Select position & cards':!pos?'Select a position':'Select 2nd card'
+    sub.textContent='';recBtn.disabled=true;return
+  }
+  const hand=toHand(cards[0],cards[1],suited)
+  const ok=OR[pos]?.has(hand)??false
+  area.className='result-area '+(ok?'ok':'ng')
+  verd.textContent=ok?'OPEN':'FOLD'
+  sub.textContent=pos+' · '+hand+' · '+(ok?'Raise first in':'Muck it')
+  recBtn.disabled=false
+}
+function upd(){updCards();updHand();updResult()}
+upd()
+
+// ============================================================
+// 画面遷移
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'))
+  document.getElementById(id).classList.add('active')
+  window.scrollTo(0,0)
+}
+
+// ============================================================
+// 記録用状態
+let recData={}
+
+function startRecord(){
+  if(!pos||cards.length!==2)return
+  const hand=toHand(cards[0],cards[1],suited)
+  const ok=OR[pos]?.has(hand)??false
+  recData={
+    id:Date.now().toString(),
+    timestamp:new Date().toISOString(),
+    myPosition:pos,
+    myHand:hand,
+    rangeJudge:ok?'OPEN':'FOLD',
+    preflop:null,flop:null,turn:null,river:null,
+    result:null,profitAmount:null,memo:''
+  }
+  // villain ポジショングリッドリセット
+  document.querySelectorAll('#villain-pos-grid .pos-btn').forEach(b=>b.classList.remove('multi-sel'))
+  // アクションリセット
+  resetActions('vill-pf-actions');resetActions('hero-pf-actions')
+  document.getElementById('vill-pf-bet').value=''
+  document.getElementById('hero-pf-bet').value=''
+  showScreen('screen-preflop')
+}
+
+// ============================================================
+// Villain ポジション（複数選択）
+document.getElementById('villain-pos-grid').addEventListener('click',e=>{
+  const b=e.target.closest('.pos-btn');if(!b)return
+  b.classList.toggle('multi-sel')
+})
+
+// ============================================================
+// アクションボタン（単一選択）
+function setupActions(containerId){
+  const el=document.getElementById(containerId)
+  el.addEventListener('click',e=>{
+    const b=e.target.closest('.act-btn');if(!b)return
+    el.querySelectorAll('.act-btn').forEach(x=>x.classList.remove('sel','sel-red'))
+    const act=b.dataset.act
+    b.classList.add(act==='FOLD'?'sel-red':'sel')
+  })
+}
+function resetActions(containerId){
+  document.querySelectorAll('#'+containerId+' .act-btn').forEach(b=>b.classList.remove('sel','sel-red'))
+}
+function getAction(containerId){
+  const sel=document.querySelector('#'+containerId+' .act-btn.sel, #'+containerId+' .act-btn.sel-red')
+  return sel?sel.dataset.act:null
+}
+['vill-pf-actions','hero-pf-actions','vill-flop-actions','hero-flop-actions',
+ 'vill-turn-actions','hero-turn-actions','vill-river-actions','hero-river-actions'].forEach(setupActions)
+
+// ============================================================
+// ボードカードピッカー
+// boardCards = ['As','Kh','7c'] のような配列で管理
+let boardCards=[]
+let pickerSuit=null  // 現在選択中のスート
+
+function makeCardPicker(containerId,displayId,targetCount,onUpdate){
+  const container=document.getElementById(containerId)
+  const display=document.getElementById(displayId)
+
+  // スートの状態
+  let curRank=null,curSuit=null
+
+  container.innerHTML=''
+
+  // スートボタン行
+  const suitRow=document.createElement('div')
+  suitRow.className='suit-row'
+  SUITS.forEach(({s,e})=>{
+    const b=document.createElement('button')
+    b.className='suit-btn'
+    b.textContent=e
+    b.dataset.suit=s
+    b.style.color=(s==='h'||s==='d')?'#c05050':'#a0c0a0'
+    b.onclick=()=>{
+      suitRow.querySelectorAll('.suit-btn').forEach(x=>x.classList.remove('sel-suit'))
+      b.classList.add('sel-suit')
+      curSuit=s
+      tryAddCard()
+    }
+    suitRow.appendChild(b)
+  })
+  container.appendChild(suitRow)
+
+  // ランクボタン行
+  const rankRow=document.createElement('div')
+  rankRow.className='card-grid'
+  rankRow.style.marginBottom='10px'
+  RANKS.forEach(r=>{
+    const b=document.createElement('button')
+    b.className='card-btn'
+    b.textContent=r
+    b.dataset.rank=r
+    b.onclick=()=>{
+      // すでに使用中カードは無効（追加済み含む）
+      rankRow.querySelectorAll('.card-btn').forEach(x=>x.classList.remove('board-sel'))
+      b.classList.add('board-sel')
+      curRank=r
+      tryAddCard()
+    }
+    rankRow.appendChild(b)
+  })
+  container.appendChild(rankRow)
+
+  function tryAddCard(){
+    if(!curRank||!curSuit)return
+    // ボードカード全体で重複チェック
+    const card=curRank+curSuit
+    if(boardCards.includes(card)){curRank=null;curSuit=null;return}
+    // まだ埋まっていなければ追加
+    const currentCount=boardCards.filter((_,i)=>i>=boardCards.length-targetCount+boardCards.length).length
+    if(boardCards.length<(onUpdate.offset+targetCount)){
+      boardCards.push(card)
+      renderDisplay()
+      updateUsedRanks()
+      curRank=null;curSuit=null
+      rankRow.querySelectorAll('.card-btn').forEach(x=>x.classList.remove('board-sel'))
+      suitRow.querySelectorAll('.suit-btn').forEach(x=>x.classList.remove('sel-suit'))
+      if(onUpdate)onUpdate()
+    }
+  }
+
+  function renderDisplay(){
+    const slotCards=boardCards.slice(onUpdate.offset,onUpdate.offset+targetCount)
+    display.innerHTML=''
+    for(let i=0;i<targetCount;i++){
+      const div=document.createElement('div')
+      if(slotCards[i]){
+        const c=slotCards[i]
+        const suit=c.slice(-1)
+        div.className='board-card '+(suit==='h'||suit==='d'?'heart':'spade')
+        const suitEmoji=SUITS.find(x=>x.s===suit)?.e||suit
+        div.textContent=c.slice(0,-1)+suitEmoji
+        div.title='タップで削除'
+        div.style.cursor='pointer'
+        div.onclick=()=>{
+          boardCards=boardCards.filter(x=>x!==c)
+          renderDisplay();updateUsedRanks()
+          if(onUpdate)onUpdate()
+        }
+      } else {
+        div.className='board-card empty-slot'
+        div.textContent='?'
+      }
+      display.appendChild(div)
+    }
+  }
+
+  function updateUsedRanks(){
+    rankRow.querySelectorAll('.card-btn').forEach(b=>{
+      // そのランクが既存のボードカードに存在するかチェック（スートが違えばOK）
+      // 完全一致(ランク+スート)のものだけ使用済み扱いにはしない
+      // 同じカード完全一致のみ無効化
+      b.classList.remove('used')
+    })
+  }
+
+  renderDisplay()
+  return {renderDisplay}
+}
+
+// ============================================================
+// 各ストリートへの遷移
+function goToFlop(){
+  // preFlopデータ保存
+  const villPos=[...document.querySelectorAll('#villain-pos-grid .pos-btn.multi-sel')].map(b=>b.dataset.pos)
+  recData.preflop={
+    villainPositions:villPos,
+    villain:{action:getAction('vill-pf-actions'),amount:Number(document.getElementById('vill-pf-bet').value)||0},
+    hero:{action:getAction('hero-pf-actions'),amount:Number(document.getElementById('hero-pf-bet').value)||0}
+  }
+  // フロップ初期化
+  boardCards=boardCards.slice(0,0)
+  boardCards=[]
+  resetActions('vill-flop-actions');resetActions('hero-flop-actions')
+  document.getElementById('vill-flop-bet').value=''
+  document.getElementById('hero-flop-bet').value=''
+
+  const upd={offset:0}
+  makeCardPicker('flop-card-picker','flop-display',3,upd)
+
+  showScreen('screen-flop')
+}
+
+function goToTurn(){
+  // flopデータ保存
+  const flopCards=boardCards.slice(0,3)
+  recData.flop={
+    board:flopCards,
+    villain:{action:getAction('vill-flop-actions'),amount:Number(document.getElementById('vill-flop-bet').value)||0},
+    hero:{action:getAction('hero-flop-actions'),amount:Number(document.getElementById('hero-flop-bet').value)||0}
+  }
+  resetActions('vill-turn-actions');resetActions('hero-turn-actions')
+  document.getElementById('vill-turn-bet').value=''
+  document.getElementById('hero-turn-bet').value=''
+
+  // ターン画面のボード表示
+  renderBoardDisplay('turn-board-display',flopCards)
+
+  const upd={offset:3}
+  makeCardPicker('turn-card-picker','turn-extra-display',1,upd)
+  // ターン用シンプルピッカー
+  makeSingleCardPicker('turn-card-picker',3)
+
+  showScreen('screen-turn')
+}
+
+function goToRiver(){
+  // turnデータ保存
+  const turnCard=boardCards[3]||null
+  recData.turn={
+    board:turnCard,
+    villain:{action:getAction('vill-turn-actions'),amount:Number(document.getElementById('vill-turn-bet').value)||0},
+    hero:{action:getAction('hero-turn-actions'),amount:Number(document.getElementById('hero-turn-bet').value)||0}
+  }
+  resetActions('vill-river-actions');resetActions('hero-river-actions')
+  document.getElementById('vill-river-bet').value=''
+  document.getElementById('hero-river-bet').value=''
+
+  renderBoardDisplay('river-board-display',boardCards.slice(0,4))
+  makeSingleCardPicker('river-card-picker',4)
+
+  showScreen('screen-river')
+}
+
+function skipToResult(street){
+  if(street==='flop'){
+    recData.flop=null;recData.turn=null;recData.river=null
+  } else if(street==='turn'){
+    const flopCards=boardCards.slice(0,3)
+    recData.flop={
+      board:flopCards,
+      villain:{action:getAction('vill-flop-actions'),amount:Number(document.getElementById('vill-flop-bet').value)||0},
+      hero:{action:getAction('hero-flop-actions'),amount:Number(document.getElementById('hero-flop-bet').value)||0}
+    }
+    recData.turn=null;recData.river=null
+  } else if(street==='river'){
+    const turnCard=boardCards[3]||null
+    recData.turn={
+      board:turnCard,
+      villain:{action:getAction('vill-turn-actions'),amount:Number(document.getElementById('vill-turn-bet').value)||0},
+      hero:{action:getAction('hero-turn-actions'),amount:Number(document.getElementById('hero-turn-bet').value)||0}
+    }
+    recData.river=null
+  }
+  document.getElementById('res-win').className='res-btn'
+  document.getElementById('res-lose').className='res-btn'
+  document.getElementById('res-chop').className='res-btn'
+  document.getElementById('profit-input').value=''
+  document.getElementById('memo-input').value=''
+  recData.result=null
+  showScreen('screen-result')
+}
+
+// ボードカード表示（読み取り専用）
+function renderBoardDisplay(elId,cards){
+  const el=document.getElementById(elId)
+  el.innerHTML=''
+  cards.forEach(c=>{
+    if(!c)return
+    const div=document.createElement('div')
+    const suit=c.slice(-1)
+    div.className='board-card '+(suit==='h'||suit==='d'?'heart':'spade')
+    const suitEmoji=SUITS.find(x=>x.s===suit)?.e||suit
+    div.textContent=c.slice(0,-1)+suitEmoji
+    el.appendChild(div)
+  })
+}
+
+// シングルカードピッカー（ターン・リバー用）
+function makeSingleCardPicker(containerId,boardIndex){
+  const container=document.getElementById(containerId)
+  container.innerHTML=''
+  let curRank=null,curSuit=null
+
+  const suitRow=document.createElement('div')
+  suitRow.className='suit-row'
+  SUITS.forEach(({s,e})=>{
+    const b=document.createElement('button')
+    b.className='suit-btn'
+    b.textContent=e
+    b.dataset.suit=s
+    b.style.color=(s==='h'||s==='d')?'#c05050':'#a0c0a0'
+    b.onclick=()=>{
+      suitRow.querySelectorAll('.suit-btn').forEach(x=>x.classList.remove('sel-suit'))
+      b.classList.add('sel-suit')
+      curSuit=s;tryAdd()
+    }
+    suitRow.appendChild(b)
+  })
+  container.appendChild(suitRow)
+
+  const rankRow=document.createElement('div')
+  rankRow.className='card-grid'
+  rankRow.style.marginBottom='10px'
+  RANKS.forEach(r=>{
+    const b=document.createElement('button')
+    b.className='card-btn'
+    b.textContent=r
+    b.onclick=()=>{
+      rankRow.querySelectorAll('.card-btn').forEach(x=>x.classList.remove('board-sel'))
+      b.classList.add('board-sel')
+      curRank=r;tryAdd()
+    }
+    rankRow.appendChild(b)
+  })
+  container.appendChild(rankRow)
+
+  // 選択済み表示エリア
+  const picked=document.createElement('div')
+  picked.className='board-display'
+  picked.style.minHeight='48px'
+  container.appendChild(picked)
+
+  function tryAdd(){
+    if(!curRank||!curSuit)return
+    const card=curRank+curSuit
+    if(boardCards.includes(card)){curRank=null;curSuit=null;return}
+    // 既存のこのスロットのカードを削除して入れ替え
+    boardCards=boardCards.slice(0,boardIndex)
+    boardCards.push(card)
+    renderPicked()
+    curRank=null;curSuit=null
+    rankRow.querySelectorAll('.card-btn').forEach(x=>x.classList.remove('board-sel'))
+    suitRow.querySelectorAll('.suit-btn').forEach(x=>x.classList.remove('sel-suit'))
+  }
+
+  function renderPicked(){
+    picked.innerHTML=''
+    const c=boardCards[boardIndex]
+    if(c){
+      const div=document.createElement('div')
+      const suit=c.slice(-1)
+      div.className='board-card '+(suit==='h'||suit==='d'?'heart':'spade')
+      const suitEmoji=SUITS.find(x=>x.s===suit)?.e||suit
+      div.textContent=c.slice(0,-1)+suitEmoji
+      div.style.cursor='pointer'
+      div.onclick=()=>{boardCards=boardCards.slice(0,boardIndex);renderPicked()}
+      picked.appendChild(div)
+    } else {
+      const div=document.createElement('div')
+      div.className='board-card empty-slot'
+      div.textContent='?'
+      picked.appendChild(div)
+    }
+  }
+  renderPicked()
+}
+
+// フロップ用ピッカー（3枚）
+function goToFlopInit(){
+  boardCards=[]
+  const container=document.getElementById('flop-card-picker')
+  const display=document.getElementById('flop-display')
+  container.innerHTML=''
+  let curRank=null,curSuit=null
+
+  const suitRow=document.createElement('div')
+  suitRow.className='suit-row'
+  SUITS.forEach(({s,e})=>{
+    const b=document.createElement('button')
+    b.className='suit-btn'
+    b.textContent=e
+    b.style.color=(s==='h'||s==='d')?'#c05050':'#a0c0a0'
+    b.dataset.suit=s
+    b.onclick=()=>{
+      suitRow.querySelectorAll('.suit-btn').forEach(x=>x.classList.remove('sel-suit'))
+      b.classList.add('sel-suit')
+      curSuit=s;tryAdd()
+    }
+    suitRow.appendChild(b)
+  })
+  container.appendChild(suitRow)
+
+  const rankRow=document.createElement('div')
+  rankRow.className='card-grid'
+  rankRow.style.marginBottom='10px'
+  RANKS.forEach(r=>{
+    const b=document.createElement('button')
+    b.className='card-btn'
+    b.textContent=r
+    b.onclick=()=>{
+      rankRow.querySelectorAll('.card-btn').forEach(x=>x.classList.remove('board-sel'))
+      b.classList.add('board-sel')
+      curRank=r;tryAdd()
+    }
+    rankRow.appendChild(b)
+  })
+  container.appendChild(rankRow)
+
+  function tryAdd(){
+    if(!curRank||!curSuit)return
+    const card=curRank+curSuit
+    if(boardCards.includes(card)||boardCards.length>=3){curRank=null;curSuit=null;return}
+    boardCards.push(card)
+    renderDisplay()
+    curRank=null;curSuit=null
+    rankRow.querySelectorAll('.card-btn').forEach(x=>x.classList.remove('board-sel'))
+    suitRow.querySelectorAll('.suit-btn').forEach(x=>x.classList.remove('sel-suit'))
+  }
+
+  function renderDisplay(){
+    display.innerHTML=''
+    for(let i=0;i<3;i++){
+      const div=document.createElement('div')
+      if(boardCards[i]){
+        const c=boardCards[i]
+        const suit=c.slice(-1)
+        div.className='board-card '+(suit==='h'||suit==='d'?'heart':'spade')
+        const se=SUITS.find(x=>x.s===suit)?.e||suit
+        div.textContent=c.slice(0,-1)+se
+        div.style.cursor='pointer'
+        div.onclick=()=>{boardCards=boardCards.filter(x=>x!==c);renderDisplay()}
+      } else {
+        div.className='board-card empty-slot'
+        div.textContent='?'
+      }
+      display.appendChild(div)
+    }
+  }
+  renderDisplay()
+}
+
+// goToFlopをオーバーライド
+function goToFlop(){
+  const villPos=[...document.querySelectorAll('#villain-pos-grid .pos-btn.multi-sel')].map(b=>b.dataset.pos)
+  recData.preflop={
+    villainPositions:villPos,
+    villain:{action:getAction('vill-pf-actions'),amount:Number(document.getElementById('vill-pf-bet').value)||0},
+    hero:{action:getAction('hero-pf-actions'),amount:Number(document.getElementById('hero-pf-bet').value)||0}
+  }
+  resetActions('vill-flop-actions');resetActions('hero-flop-actions')
+  document.getElementById('vill-flop-bet').value=''
+  document.getElementById('hero-flop-bet').value=''
+  goToFlopInit()
+  showScreen('screen-flop')
+}
+
+// ============================================================
+// 結果選択
+function setResult(r){
+  recData.result=r
+  document.getElementById('res-win').className='res-btn'+(r==='WIN'?' win':'')
+  document.getElementById('res-lose').className='res-btn'+(r==='LOSE'?' lose':'')
+  document.getElementById('res-chop').className='res-btn'+(r==='CHOP'?' chop':'')
+}
+
+// ============================================================
+// 保存
+function saveHand(){
+  // riverデータ収集（screen-riverを経由した場合）
+  if(document.getElementById('screen-river').classList.contains('active')||recData.river===undefined){
+    const riverCard=boardCards[4]||null
+    if(riverCard){
+      recData.river={
+        board:riverCard,
+        villain:{action:getAction('vill-river-actions'),amount:Number(document.getElementById('vill-river-bet').value)||0},
+        hero:{action:getAction('hero-river-actions'),amount:Number(document.getElementById('hero-river-bet').value)||0}
+      }
+    }
+  }
+  recData.profitAmount=Number(document.getElementById('profit-input').value)||null
+  recData.memo=document.getElementById('memo-input').value.trim()
+
+  const history=loadHistory()
+  history.unshift(recData)
+  localStorage.setItem('poker_history',JSON.stringify(history))
+
+  boardCards=[]
+  showScreen('screen-history')
+  renderHistory()
+}
+
+// ============================================================
+// localStorage
+function loadHistory(){
+  try{return JSON.parse(localStorage.getItem('poker_history'))||[]}
+  catch{return[]}
+}
+function clearHistory(){
+  if(!confirm('全ての記録を削除しますか？'))return
+  localStorage.removeItem('poker_history')
+  renderHistory()
+}
+
+// ============================================================
+// 履歴表示
+function renderHistory(){
+  const history=loadHistory()
+  const list=document.getElementById('history-list')
+  const cnt=document.getElementById('history-count')
+  cnt.textContent=history.length+' hands'
+  list.innerHTML=''
+  if(history.length===0){
+    list.innerHTML='<div class="empty-history">No hands recorded yet</div>'
+    return
+  }
+  history.forEach(h=>{
+    const div=document.createElement('div')
+    const rc=(h.result==='WIN'?'win':h.result==='LOSE'?'lose':'chop')+'-item'
+    div.className='history-item '+rc
+    const dt=new Date(h.timestamp)
+    const dateStr=dt.getMonth()+1+'/'+dt.getDate()+' '+dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0')
+    const profit=h.profitAmount!=null?(h.profitAmount>0?'+':'')+h.profitAmount+'bb':''
+    div.innerHTML=`
+      <div class="hi-top">
+        <span class="hi-hand">${h.myHand}</span>
+        <span class="hi-result">${h.result||'—'}${profit?' · '+profit:''}</span>
+      </div>
+      <div class="hi-meta">${dateStr} · ${h.myPosition} · ${h.rangeJudge}${h.preflop?.villainPositions?.length?' · vs '+h.preflop.villainPositions.join(','):''}</div>
+    `
+    div.onclick=()=>showDetail(h)
+    list.appendChild(div)
+  })
+}
+
+// ============================================================
+// 詳細表示
+function suitEmoji(s){return SUITS.find(x=>x.s===s)?.e||s}
+function fmtCard(c){if(!c)return'—';const suit=c.slice(-1);return c.slice(0,-1)+suitEmoji(suit)}
+function fmtCards(arr){if(!arr||!arr.length)return'—';return arr.map(fmtCard).join(' ')}
+
+function showDetail(h){
+  const el=document.getElementById('detail-content')
+  const rows=[]
+  const row=(k,v)=>`<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v||'—'}</span></div>`
+  const street=(title,data)=>{
+    if(!data)return''
+    let s=`<div class="detail-street">${title}</div>`
+    if(data.board){
+      const board=Array.isArray(data.board)?fmtCards(data.board):fmtCard(data.board)
+      s+=row('Board',board)
+    }
+    if(data.villainPositions)s+=row('Villain pos',data.villainPositions.join(', '))
+    if(data.villain?.action)s+=row('Villain',data.villain.action+(data.villain.amount?' · '+data.villain.amount+'bb':''))
+    if(data.hero?.action)s+=row('Hero',data.hero.action+(data.hero.amount?' · '+data.hero.amount+'bb':''))
+    return s
+  }
+
+  el.innerHTML=`
+    <div class="detail-row"><span class="detail-key">Hand</span><span class="detail-val" style="font-family:'Playfair Display',serif;font-size:20px;color:#e8d5a3">${h.myHand}</span></div>
+    ${row('Position',h.myPosition)}
+    ${row('Range judge',h.rangeJudge)}
+    ${row('Result',h.result)}
+    ${h.profitAmount!=null?row('Profit/Loss',(h.profitAmount>0?'+':'')+h.profitAmount+'bb'):''}
+    ${street('Preflop',h.preflop)}
+    ${street('Flop',h.flop)}
+    ${street('Turn',h.turn)}
+    ${street('River',h.river)}
+    ${h.memo?row('Memo',h.memo):''}
+  `
+  document.getElementById('detail-overlay').style.display='flex'
+}
+function closeDetail(e){
+  if(e.target===document.getElementById('detail-overlay'))
+    document.getElementById('detail-overlay').style.display='none'
+}
+
+// ============================================================
+// 初期化
+renderHistory()
+</script>
+</html>
